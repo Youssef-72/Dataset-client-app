@@ -1,21 +1,31 @@
+import os
+import pymysql
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from typing import Optional
-from database import get_connection
 from datetime import datetime
 from dotenv import load_dotenv
+
 load_dotenv()
 
 app = FastAPI(title="Government Dataset Client App")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+def get_connection():
+    return pymysql.connect(
+        host="mysql-3d66d3a9-database-project1-shehata.e.aivencloud.com",
+        port=21312,
+        user="avnadmin",
+        password=os.environ.get("DB_PASSWORD", ""),
+        database="defaultdb",
+        ssl={"ssl_disabled": False},
+        cursorclass=pymysql.cursors.DictCursor
+    )
+
 @app.get("/")
 def root():
     return FileResponse("static/index.html")
-
-# ─── Models ───────────────────────────────────────────────────────────────────
 
 class UserRegister(BaseModel):
     email: str
@@ -29,8 +39,6 @@ class UsageAdd(BaseModel):
     dataset_identifier: str
     project_name: str
     project_category: str
-
-# ─── 1. Register a user ───────────────────────────────────────────────────────
 
 @app.post("/users/register")
 def register_user(user: UserRegister):
@@ -48,8 +56,6 @@ def register_user(user: UserRegister):
             return {"message": "User registered successfully", "user_id": cur.lastrowid}
     finally:
         conn.close()
-
-# ─── 2. Add dataset usage ─────────────────────────────────────────────────────
 
 @app.post("/usage/add")
 def add_usage(usage: UsageAdd):
@@ -71,8 +77,6 @@ def add_usage(usage: UsageAdd):
     finally:
         conn.close()
 
-# ─── 3. View usage for a user ─────────────────────────────────────────────────
-
 @app.get("/usage/user/{user_id}")
 def get_user_usage(user_id: int):
     conn = get_connection()
@@ -92,8 +96,6 @@ def get_user_usage(user_id: int):
     finally:
         conn.close()
 
-# ─── 4. View datasets by organization type ────────────────────────────────────
-
 @app.get("/datasets/by-org-type")
 def datasets_by_org_type(org_type: str):
     conn = get_connection()
@@ -101,10 +103,8 @@ def datasets_by_org_type(org_type: str):
         with conn.cursor() as cur:
             cur.execute("""
                 SELECT d.identifier, d.name, d.access_level, o.name as org_name, o.org_type
-                FROM Dataset d
-                JOIN Organization o ON d.org_id = o.org_id
-                WHERE o.org_type LIKE %s
-                LIMIT 100
+                FROM Dataset d JOIN Organization o ON d.org_id = o.org_id
+                WHERE o.org_type LIKE %s LIMIT 100
             """, (f"%{org_type}%",))
             results = cur.fetchall()
             if not results:
@@ -113,8 +113,6 @@ def datasets_by_org_type(org_type: str):
     finally:
         conn.close()
 
-# ─── 5. Top 5 contributing organizations ─────────────────────────────────────
-
 @app.get("/organizations/top5")
 def top5_organizations():
     conn = get_connection()
@@ -122,17 +120,13 @@ def top5_organizations():
         with conn.cursor() as cur:
             cur.execute("""
                 SELECT o.name, o.org_type, COUNT(d.identifier) as dataset_count
-                FROM Organization o
-                JOIN Dataset d ON o.org_id = d.org_id
+                FROM Organization o JOIN Dataset d ON o.org_id = d.org_id
                 GROUP BY o.org_id, o.name, o.org_type
-                ORDER BY dataset_count DESC
-                LIMIT 5
+                ORDER BY dataset_count DESC LIMIT 5
             """)
             return cur.fetchall()
     finally:
         conn.close()
-
-# ─── 6. Datasets by format ────────────────────────────────────────────────────
 
 @app.get("/datasets/by-format")
 def datasets_by_format(format: str):
@@ -141,10 +135,8 @@ def datasets_by_format(format: str):
         with conn.cursor() as cur:
             cur.execute("""
                 SELECT DISTINCT d.identifier, d.name, d.access_level, r.file_format
-                FROM Dataset d
-                JOIN Resource r ON d.identifier = r.dataset_identifier
-                WHERE r.file_format LIKE %s
-                LIMIT 100
+                FROM Dataset d JOIN Resource r ON d.identifier = r.dataset_identifier
+                WHERE r.file_format LIKE %s LIMIT 100
             """, (f"%{format}%",))
             results = cur.fetchall()
             if not results:
@@ -153,8 +145,6 @@ def datasets_by_format(format: str):
     finally:
         conn.close()
 
-# ─── 7. Datasets by tag ───────────────────────────────────────────────────────
-
 @app.get("/datasets/by-tag")
 def datasets_by_tag(tag: str):
     conn = get_connection()
@@ -162,10 +152,8 @@ def datasets_by_tag(tag: str):
         with conn.cursor() as cur:
             cur.execute("""
                 SELECT DISTINCT d.identifier, d.name, d.access_level, dt.tag_name
-                FROM Dataset d
-                JOIN Dataset_Tag dt ON d.identifier = dt.dataset_identifier
-                WHERE dt.tag_name LIKE %s
-                LIMIT 100
+                FROM Dataset d JOIN Dataset_Tag dt ON d.identifier = dt.dataset_identifier
+                WHERE dt.tag_name LIKE %s LIMIT 100
             """, (f"%{tag}%",))
             results = cur.fetchall()
             if not results:
@@ -173,8 +161,6 @@ def datasets_by_tag(tag: str):
             return results
     finally:
         conn.close()
-
-# ─── 8. Total datasets by organization, topic, format, org type ───────────────
 
 @app.get("/stats/totals")
 def dataset_totals():
@@ -187,21 +173,18 @@ def dataset_totals():
                 GROUP BY o.name ORDER BY total DESC LIMIT 10
             """)
             by_org = cur.fetchall()
-
             cur.execute("""
                 SELECT dtp.topic_name, COUNT(dtp.dataset_identifier) as total
                 FROM Dataset_Topic dtp
                 GROUP BY dtp.topic_name ORDER BY total DESC LIMIT 10
             """)
             by_topic = cur.fetchall()
-
             cur.execute("""
                 SELECT file_format, COUNT(*) as total
                 FROM Resource WHERE file_format != ''
                 GROUP BY file_format ORDER BY total DESC LIMIT 10
             """)
             by_format = cur.fetchall()
-
             cur.execute("""
                 SELECT o.org_type, COUNT(d.identifier) as total
                 FROM Organization o JOIN Dataset d ON o.org_id = d.org_id
@@ -209,17 +192,9 @@ def dataset_totals():
                 GROUP BY o.org_type ORDER BY total DESC
             """)
             by_org_type = cur.fetchall()
-
-            return {
-                "by_organization": by_org,
-                "by_topic": by_topic,
-                "by_format": by_format,
-                "by_org_type": by_org_type
-            }
+            return {"by_organization": by_org, "by_topic": by_topic, "by_format": by_format, "by_org_type": by_org_type}
     finally:
         conn.close()
-
-# ─── 9. Top 5 datasets by number of users ────────────────────────────────────
 
 @app.get("/datasets/top5-by-users")
 def top5_datasets_by_users():
@@ -228,17 +203,13 @@ def top5_datasets_by_users():
         with conn.cursor() as cur:
             cur.execute("""
                 SELECT d.identifier, d.name, COUNT(du.user_id) as user_count
-                FROM Dataset d
-                JOIN DatasetUsage du ON d.identifier = du.dataset_identifier
+                FROM Dataset d JOIN DatasetUsage du ON d.identifier = du.dataset_identifier
                 GROUP BY d.identifier, d.name
-                ORDER BY user_count DESC
-                LIMIT 5
+                ORDER BY user_count DESC LIMIT 5
             """)
             return cur.fetchall()
     finally:
         conn.close()
-
-# ─── 10. Usage distribution by project type ──────────────────────────────────
 
 @app.get("/usage/by-project-type")
 def usage_by_project_type():
@@ -247,15 +218,11 @@ def usage_by_project_type():
         with conn.cursor() as cur:
             cur.execute("""
                 SELECT project_category, COUNT(*) as total
-                FROM DatasetUsage
-                GROUP BY project_category
-                ORDER BY total DESC
+                FROM DatasetUsage GROUP BY project_category ORDER BY total DESC
             """)
             return cur.fetchall()
     finally:
         conn.close()
-
-# ─── 11. Top 10 tags per project type ────────────────────────────────────────
 
 @app.get("/tags/top10-by-project-type")
 def top10_tags_by_project_type():
@@ -264,8 +231,7 @@ def top10_tags_by_project_type():
         with conn.cursor() as cur:
             cur.execute("""
                 SELECT du.project_category, dt.tag_name, COUNT(*) as tag_count
-                FROM DatasetUsage du
-                JOIN Dataset_Tag dt ON du.dataset_identifier = dt.dataset_identifier
+                FROM DatasetUsage du JOIN Dataset_Tag dt ON du.dataset_identifier = dt.dataset_identifier
                 GROUP BY du.project_category, dt.tag_name
                 ORDER BY du.project_category, tag_count DESC
             """)
