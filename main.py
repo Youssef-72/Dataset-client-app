@@ -5,6 +5,8 @@ from pydantic import BaseModel
 from typing import Optional
 from database import get_connection
 from datetime import datetime
+from dotenv import load_dotenv
+load_dotenv()
 
 app = FastAPI(title="Government Dataset Client App")
 app.mount("/static", StaticFiles(directory="static"), name="static")
