@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Government Dataset Client App</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; color: #333; }
+  header { background: #1a3c5e; color: white; padding: 20px 40px; }
+  header h1 { font-size: 1.6rem; }
+  header p { font-size: 0.9rem; opacity: 0.8; margin-top: 4px; }
+  .container { max-width: 960px; margin: 30px auto; padding: 0 20px; }
+  .card { background: white; border-radius: 10px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .card h2 { font-size: 1.1rem; color: #1a3c5e; margin-bottom: 16px; border-bottom: 2px solid #e8f0fe; padding-bottom: 8px; }
+  .form-group { margin-bottom: 12px; }
+  label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; color: #555; }
+  input, select { width: 100%; padding: 9px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.9rem; }
+  input:focus, select:focus { outline: none; border-color: #1a3c5e; }
+  button { background: #1a3c5e; color: white; border: none; padding: 10px 22px; border-radius: 6px; cursor: pointer; font-size: 0.9rem; margin-top: 8px; }
+  button:hover { background: #2a5c8e; }
+  .result { margin-top: 16px; background: #f8f9fa; border-radius: 6px; padding: 14px; font-size: 0.85rem; max-height: 300px; overflow-y: auto; }
+  .error { color: #c0392b; background: #fdecea; padding: 10px; border-radius: 6px; margin-top: 10px; font-size: 0.85rem; }
+  .success { color: #27ae60; background: #eafaf1; padding: 10px; border-radius: 6px; margin-top: 10px; font-size: 0.85rem; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  th { background: #1a3c5e; color: white; padding: 8px; text-align: left; }
+  td { padding: 7px 8px; border-bottom: 1px solid #eee; }
+  tr:hover td { background: #f0f4ff; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media(max-width:600px){ .grid2 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>🗂 Government Dataset Client App</h1>
+  <p>Database Milestone 3 — Youssef Shehata</p>
+</header>
+<div class="container">
+
+  <!-- 1. Register User -->
+  <div class="card">
+    <h2>1. Register a New User</h2>
+    <div class="grid2">
+      <div class="form-group"><label>Email</label><input id="reg_email" type="email" placeholder="user@example.com"/></div>
+      <div class="form-group"><label>Username</label><input id="reg_username" placeholder="johndoe"/></div>
+      <div class="form-group"><label>Gender</label>
+        <select id="reg_gender"><option value="">Select...</option><option>Male</option><option>Female</option><option>Other</option></select>
+      </div>
+      <div class="form-group"><label>Birthdate</label><input id="reg_birthdate" type="date"/></div>
+      <div class="form-group"><label>Country</label><input id="reg_country" placeholder="USA"/></div>
+    </div>
+    <button onclick="registerUser()">Register</button>
+    <div id="reg_result"></div>
+  </div>
+
+  <!-- 2. Add Usage -->
+  <div class="card">
+    <h2>2. Add Dataset Usage</h2>
+    <div class="grid2">
+      <div class="form-group"><label>User ID</label><input id="usage_uid" type="number" placeholder="1"/></div>
+      <div class="form-group"><label>Dataset Identifier</label><input id="usage_did" placeholder="e.g. 015-BFS-2014Q1-04"/></div>
+      <div class="form-group"><label>Project Name</label><input id="usage_pname" placeholder="My Research Project"/></div>
+      <div class="form-group"><label>Project Category</label>
+        <select id="usage_pcat"><option value="">Select...</option><option>research</option><option>visualization</option><option>analytics</option><option>education</option><option>other</option></select>
+      </div>
+    </div>
+    <button onclick="addUsage()">Add Usage</button>
+    <div id="usage_result"></div>
+  </div>
+
+  <!-- 3. View User Usage -->
+  <div class="card">
+    <h2>3. View My Usage History</h2>
+    <div class="form-group"><label>User ID</label><input id="view_uid" type="number" placeholder="1" style="max-width:200px"/></div>
+    <button onclick="viewUsage()">View Usage</button>
+    <div id="view_result"></div>
+  </div>
+
+  <!-- 4. Datasets by Org Type -->
+  <div class="card">
+    <h2>4. Datasets by Organization Type</h2>
+    <div class="form-group"><label>Organization Type</label>
+      <select id="orgtype_val">
+        <option value="">Select...</option>
+        <option value="federal">Federal</option>
+        <option value="state">State</option>
+        <option value="city">City</option>
+        <option value="county">County</option>
+        <option value="local">Local</option>
+      </select>
+    </div>
+    <button onclick="datasetsByOrgType()">Search</button>
+    <div id="orgtype_result"></div>
+  </div>
+
+  <!-- 5. Top 5 Organizations -->
+  <div class="card">
+    <h2>5. Top 5 Contributing Organizations</h2>
+    <button onclick="top5Orgs()">Load Top 5</button>
+    <div id="top5org_result"></div>
+  </div>
+
+  <!-- 6. Datasets by Format -->
+  <div class="card">
+    <h2>6. Datasets by Format</h2>
+    <div class="form-group"><label>File Format</label>
+      <select id="format_val">
+        <option value="">Select...</option>
+        <option value="CSV">CSV</option>
+        <option value="JSON">JSON</option>
+        <option value="PDF">PDF</option>
+        <option value="XML">XML</option>
+        <option value="XLS">XLS</option>
+        <option value="ZIP">ZIP</option>
+        <option value="HTML">HTML</option>
+      </select>
+    </div>
+    <button onclick="datasetsByFormat()">Search</button>
+    <div id="format_result"></div>
+  </div>
+
+  <!-- 7. Datasets by Tag -->
+  <div class="card">
+    <h2>7. Datasets by Tag</h2>
+    <div class="form-group"><label>Tag</label><input id="tag_val" placeholder="e.g. health, climate, education" style="max-width:300px"/></div>
+    <button onclick="datasetsByTag()">Search</button>
+    <div id="tag_result"></div>
+  </div>
+
+  <!-- 8. Totals Stats -->
+  <div class="card">
+    <h2>8. Total Datasets by Organization, Topic, Format & Org Type</h2>
+    <button onclick="loadTotals()">Load Stats</button>
+    <div id="totals_result"></div>
+  </div>
+
+  <!-- 9. Top 5 Datasets by Users -->
+  <div class="card">
+    <h2>9. Top 5 Datasets by Number of Users</h2>
+    <button onclick="top5Datasets()">Load Top 5</button>
+    <div id="top5ds_result"></div>
+  </div>
+
+  <!-- 10. Usage by Project Type -->
+  <div class="card">
+    <h2>10. Usage Distribution by Project Type</h2>
+    <button onclick="usageByProjectType()">Load Distribution</button>
+    <div id="projtype_result"></div>
+  </div>
+
+  <!-- 11. Top 10 Tags per Project Type -->
+  <div class="card">
+    <h2>11. Top 10 Tags by Project Type</h2>
+    <button onclick="top10Tags()">Load Tags</button>
+    <div id="tags_result"></div>
+  </div>
+
+</div>
+
+<script>
+const API = "";
+
+function showResult(id, data, isError=false) {
+  const el = document.getElementById(id);
+  if (isError) { el.innerHTML = `<div class="error">❌ ${data}</div>`; return; }
+  if (typeof data === "string") { el.innerHTML = `<div class="success">✅ ${data}</div>`; return; }
+  if (Array.isArray(data) && data.length === 0) { el.innerHTML = `<div class="error">No results found.</div>`; return; }
+  if (Array.isArray(data)) {
+    const keys = Object.keys(data[0]);
+    let html = `<div class="result"><table><tr>${keys.map(k=>`<th>${k}</th>`).join("")}</tr>`;
+    data.forEach(row => { html += `<tr>${keys.map(k=>`<td>${row[k] ?? ""}</td>`).join("")}</tr>`; });
+    html += `</table></div>`;
+    el.innerHTML = html;
+  } else {
+    el.innerHTML = `<div class="result"><pre>${JSON.stringify(data, null, 2)}</pre></div>`;
+  }
+}
+
+function validate(fields) {
+  for (const [name, val] of Object.entries(fields)) {
+    if (!val || val.toString().trim() === "") return `Please fill in: ${name}`;
+  }
+  return null;
+}
+
+async function registerUser() {
+  const email = document.getElementById("reg_email").value.trim();
+  const username = document.getElementById("reg_username").value.trim();
+  const gender = document.getElementById("reg_gender").value;
+  const birthdate = document.getElementById("reg_birthdate").value;
+  const country = document.getElementById("reg_country").value.trim();
+  const err = validate({Email: email, Username: username, Gender: gender, Birthdate: birthdate, Country: country});
+  if (err) { showResult("reg_result", err, true); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showResult("reg_result", "Invalid email format", true); return; }
+  const res = await fetch(`${API}/users/register`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({email, username, gender, birthdate, country}) });
+  const data = await res.json();
+  if (!res.ok) { showResult("reg_result", data.detail, true); return; }
+  showResult("reg_result", `User registered! User ID: ${data.user_id}`);
+}
+
+async function addUsage() {
+  const user_id = parseInt(document.getElementById("usage_uid").value);
+  const dataset_identifier = document.getElementById("usage_did").value.trim();
+  const project_name = document.getElementById("usage_pname").value.trim();
+  const project_category = document.getElementById("usage_pcat").value;
+  const err = validate({"User ID": user_id, "Dataset Identifier": dataset_identifier, "Project Name": project_name, "Project Category": project_category});
+  if (err) { showResult("usage_result", err, true); return; }
+  if (isNaN(user_id) || user_id <= 0) { showResult("usage_result", "User ID must be a positive number", true); return; }
+  const res = await fetch(`${API}/usage/add`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({user_id, dataset_identifier, project_name, project_category}) });
+  const data = await res.json();
+  if (!res.ok) { showResult("usage_result", data.detail, true); return; }
+  showResult("usage_result", data.message);
+}
+
+async function viewUsage() {
+  const uid = document.getElementById("view_uid").value.trim();
+  if (!uid) { showResult("view_result", "Please enter a User ID", true); return; }
+  const res = await fetch(`${API}/usage/user/${uid}`);
+  const data = await res.json();
+  if (!res.ok) { showResult("view_result", data.detail, true); return; }
+  showResult("view_result", data);
+}
+
+async function datasetsByOrgType() {
+  const org_type = document.getElementById("orgtype_val").value;
+  if (!org_type) { showResult("orgtype_result", "Please select an organization type", true); return; }
+  const res = await fetch(`${API}/datasets/by-org-type?org_type=${encodeURIComponent(org_type)}`);
+  const data = await res.json();
+  if (!res.ok) { showResult("orgtype_result", data.detail, true); return; }
+  showResult("orgtype_result", data);
+}
+
+async function top5Orgs() {
+  const res = await fetch(`${API}/organizations/top5`);
+  const data = await res.json();
+  if (!res.ok) { showResult("top5org_result", data.detail, true); return; }
+  showResult("top5org_result", data);
+}
+
+async function datasetsByFormat() {
+  const format = document.getElementById("format_val").value;
+  if (!format) { showResult("format_result", "Please select a format", true); return; }
+  const res = await fetch(`${API}/datasets/by-format?format=${encodeURIComponent(format)}`);
+  const data = await res.json();
+  if (!res.ok) { showResult("format_result", data.detail, true); return; }
+  showResult("format_result", data);
+}
+
+async function datasetsByTag() {
+  const tag = document.getElementById("tag_val").value.trim();
+  if (!tag) { showResult("tag_result", "Please enter a tag", true); return; }
+  const res = await fetch(`${API}/datasets/by-tag?tag=${encodeURIComponent(tag)}`);
+  const data = await res.json();
+  if (!res.ok) { showResult("tag_result", data.detail, true); return; }
+  showResult("tag_result", data);
+}
+
+async function loadTotals() {
+  const res = await fetch(`${API}/stats/totals`);
+  const data = await res.json();
+  if (!res.ok) { showResult("totals_result", data.detail, true); return; }
+  let html = "";
+  for (const [key, rows] of Object.entries(data)) {
+    if (!rows.length) continue;
+    const label = key.replace(/_/g," ").toUpperCase();
+    const keys = Object.keys(rows[0]);
+    html += `<div class="result" style="margin-bottom:12px"><strong>${label}</strong><table><tr>${keys.map(k=>`<th>${k}</th>`).join("")}</tr>`;
+    rows.forEach(row => { html += `<tr>${keys.map(k=>`<td>${row[k] ?? ""}</td>`).join("")}</tr>`; });
+    html += `</table></div>`;
+  }
+  document.getElementById("totals_result").innerHTML = html;
+}
+
+async function top5Datasets() {
+  const res = await fetch(`${API}/datasets/top5-by-users`);
+  const data = await res.json();
+  if (!res.ok) { showResult("top5ds_result", data.detail, true); return; }
+  showResult("top5ds_result", data);
+}
+
+async function usageByProjectType() {
+  const res = await fetch(`${API}/usage/by-project-type`);
+  const data = await res.json();
+  if (!res.ok) { showResult("projtype_result", data.detail, true); return; }
+  showResult("projtype_result", data);
+}
+
+async function top10Tags() {
+  const res = await fetch(`${API}/tags/top10-by-project-type`);
+  const data = await res.json();
+  if (!res.ok) { showResult("tags_result", data.detail, true); return; }
+  let html = "";
+  for (const [cat, tags] of Object.entries(data)) {
+    html += `<div class="result" style="margin-bottom:12px"><strong>${cat.toUpperCase()}</strong><table><tr><th>Tag</th><th>Count</th></tr>`;
+    tags.forEach(t => { html += `<tr><td>${t.tag}</td><td>${t.count}</td></tr>`; });
+    html += `</table></div>`;
+  }
+  document.getElementById("tags_result").innerHTML = html;
+}
+</script>
+</body>
+</html>
